@@ -170,20 +170,12 @@ public sealed class Dq8Character
 
         foreach (int headerBase in _headerBases)
         {
+            // Level (and every field) lives only in the stat block. NOTE: header+0x14 is
+            // the party-membership bitmask, NOT a level mirror — writing there corrupts the party.
             int at = StatBase(headerBase) + f.Offset;
             if (at >= 0 && at + f.Size <= _ee.Length)
             {
                 WriteValue(at, f.Size, stored);
-            }
-
-            // The hero's level is mirrored in the header (1-indexed) too.
-            if (key == "level" && IsHero)
-            {
-                int la = headerBase + _layout.HeroLevelOffset;
-                if (la >= 0 && la + 4 <= _ee.Length)
-                {
-                    BinaryPrimitives.WriteUInt32LittleEndian(_ee.AsSpan(la), (uint)display);
-                }
             }
         }
     }

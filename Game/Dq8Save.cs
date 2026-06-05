@@ -19,31 +19,34 @@ public sealed class Dq8Save
     public string? DetectedSerial { get; }
     public IReadOnlyList<Dq8Character> AllMembers { get; }
 
-    /// <summary>Active party members for this save (Jessica/Angelo etc. are excluded until they join).</summary>
-    public IReadOnlyList<Dq8Character> PartyMembers =>
-        AllMembers.Take(PartyCount).Where(m => m.IsPresent).ToList();
-
-    /// <summary>Detected active party size (clamped), or the configured override.</summary>
-    public int PartyCount
+    /// <summary>Party members currently recruited, per the membership bitmask (bit i = member i).</summary>
+    public IReadOnlyList<Dq8Character> PartyMembers
     {
         get
         {
             if (_layout.PartyCountOverride > 0)
-            {
-                return Math.Min(_layout.PartyCountOverride, AllMembers.Count);
-            }
+                return AllMembers.Take(_layout.PartyCountOverride).Where(m => m.IsPresent).ToList();
 
-            if (_validBases.Count == 0)
-            {
-                return 0;
-            }
+            int mask = PartyMask;
+            if (mask == 0)   // fall back to contiguous-present detection if no mask
+                return AllMembers.Where(m => m.IsPresent).ToList();
 
-            int at = _validBases[0] + _layout.PartyCountOffset;
-            int n = at + 2 <= _ee.Length ? BinaryPrimitives.ReadUInt16LittleEndian(_ee.AsSpan(at)) : 0;
-
-            return Math.Clamp(n, 0, AllMembers.Count);
+            return AllMembers.Where(m => (mask & (1 << m.Slot)) != 0 && m.IsPresent).ToList();
         }
     }
+
+    /// <summary>Raw party-membership bitmask from the save (0 if unavailable).</summary>
+    public int PartyMask
+    {
+        get
+        {
+            if (_validBases.Count == 0) return 0;
+            int at = _validBases[0] + _layout.PartyBitmaskOffset;
+            return at + 2 <= _ee.Length ? BinaryPrimitives.ReadUInt16LittleEndian(_ee.AsSpan(at)) : 0;
+        }
+    }
+
+    public int PartyCount => PartyMembers.Count;
 
     /// <summary>True if at least one valid party-structure copy was found.</summary>
     public bool StructureFound => _validBases.Count > 0;
@@ -149,8 +152,9 @@ public sealed class Dq8Save
             return false;
         }
 
-        int levelAt = headerBase + layout.HeroLevelOffset;
-        int maxHpAt = headerBase + layout.StatBlockOffset + 0x04;
+        // Validate using slot-0's stat block (max HP + level), which are stable fields.
+        int levelAt = headerBase + layout.StatBlockOffset + 0x10;   // level (0-indexed)
+        int maxHpAt = headerBase + layout.StatBlockOffset + 0x04;   // max HP
         if (levelAt + 4 > ee.Length || maxHpAt + 4 > ee.Length)
         {
             return false;
@@ -159,7 +163,7 @@ public sealed class Dq8Save
         long level = BinaryPrimitives.ReadUInt32LittleEndian(ee.AsSpan(levelAt));
         long maxHp = BinaryPrimitives.ReadUInt32LittleEndian(ee.AsSpan(maxHpAt));
 
-        return level is >= 1 and <= 99 && maxHp is >= 1 and <= 99999;
+        return level is >= 0 and <= 99 && maxHp is >= 1 and <= 99999;
     }
 
     private static string? FindSerial(byte[] ee)

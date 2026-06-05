@@ -236,9 +236,17 @@ public sealed partial class MainForm : Form
             StyleNumeric(num);
             num.ValueChanged += (_, _) =>
             {
-                if (_loading) return;
+                if (_loading)
+                {
+                    return;
+                }
+
                 int idx = _lstChars.SelectedIndex;
-                if (idx < 0 || idx >= _party.Count) return;
+                if (idx < 0 || idx >= _party.Count)
+                {
+                    return;
+                }
+
                 _party[idx].Set(f.Key, (long)num.Value);
                 MarkDirty();
             };

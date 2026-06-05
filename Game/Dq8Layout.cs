@@ -53,7 +53,14 @@ public sealed class Dq8Layout
     public int GoldOffset { get; set; } = 0x10;     // relative to header base, u32
     public long GoldMax { get; set; } = 9_999_999;
 
-    public int HeroLevelOffset { get; set; } = 0x14; // relative to header base, u32 (1-indexed)
+    /// <summary>
+    /// Relative to header base: party-membership BITMASK (u16). Bit i set = roster
+    /// member i (0=hero, 1=Yangus, 2=Jessica, 3=Angelo, …) is in the party. Verified
+    /// 0b011 (Jack+Yangus) -> 0b111 when Jessica joined. (Character level is NOT here —
+    /// it lives in each stat block at +0x10; this offset only coincidentally equalled
+    /// the hero's level early game.)
+    /// </summary>
+    public int PartyBitmaskOffset { get; set; } = 0x14;
 
     // --- Inventory (read-only) ---
     /// <summary>Header base -> first character's personal item block.</summary>
@@ -77,10 +84,7 @@ public sealed class Dq8Layout
     public int EquippedWeaponBase { get; set; } = 0x44DA70;
     public int EquippedWeaponStride { get; set; } = 0x0A;
 
-    /// <summary>Relative to header base (u16): best-known active party-member count.
-    /// Verified = 2 (Jack+Yangus) on the calibration save; refine if a larger party miscounts.</summary>
-    public int PartyCountOffset { get; set; } = 0x1C;
-    /// <summary>If set (>0), forces the party size instead of reading PartyCountOffset.</summary>
+    /// <summary>If set (>0), forces the party size instead of reading the membership bitmask.</summary>
     public int PartyCountOverride { get; set; }
 
     public List<FieldDef> Fields { get; set; } = new();
