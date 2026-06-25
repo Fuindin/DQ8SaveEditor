@@ -33,12 +33,55 @@ public sealed partial class MainForm : Form
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        UpdateCharListItemHeight();
+        UpdateTabSize();
         if (_pendingOpen is not null)
         {
             string path = _pendingOpen;
             _pendingOpen = null;
             LoadPath(path);
         }
+    }
+
+    protected override void OnDpiChanged(DpiChangedEventArgs e)
+    {
+        base.OnDpiChanged(e);
+        UpdateCharListItemHeight();
+        UpdateTabSize();
+    }
+
+    /// <summary>
+    /// Size the owner-drawn tabs to fit the widest label at the current DPI. The
+    /// tabs are OwnerDrawFixed (every tab shares ItemSize), so a fixed width would
+    /// clip captions on high-DPI displays.
+    /// </summary>
+    private void UpdateTabSize()
+    {
+        int w = 0, h = 0;
+        foreach (TabPage p in _tabs.TabPages)
+        {
+            Size sz = TextRenderer.MeasureText(p.Text, _tabs.Font);
+            w = Math.Max(w, sz.Width);
+            h = Math.Max(h, sz.Height);
+        }
+
+        _tabs.ItemSize = new Size(w + 28, h + 14);
+    }
+
+    /// <summary>
+    /// Size the character rows to the current DPI so the bold font can't clip; the
+    /// fixed ItemHeight was tuned for 100% scaling only.
+    /// </summary>
+    private void UpdateCharListItemHeight()
+    {
+        if (!_lstChars.IsHandleCreated)
+        {
+            return;
+        }
+
+        using var g = _lstChars.CreateGraphics();
+        _lstChars.ItemHeight = (int)Math.Ceiling(_lstChars.Font.GetHeight(g)) + 10;
+        _lstChars.Invalidate();
     }
 
     // ---- Theme & wiring (kept out of the designer file so it stays editable) ----
@@ -59,6 +102,15 @@ public sealed partial class MainForm : Form
         _lblFile.BackColor = Color.Transparent;
         _lblSerial.ForeColor = Theme.InkMuted;
         _lblSerial.BackColor = Color.Transparent;
+
+        // Let the header size to its (DPI-scaled) text instead of fixed-pixel rows,
+        // which clipped the banner line at >100% scaling.
+        _header.AutoSize = true;
+        _header.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        foreach (RowStyle rs in _header.RowStyles)
+        {
+            rs.SizeType = SizeType.AutoSize;
+        }
 
         _goldPanel.BackColor = Theme.Parchment;
         _lblGold.ForeColor = Theme.Ink;
@@ -211,16 +263,20 @@ public sealed partial class MainForm : Form
         _fieldTable.RowCount = _layout.Fields.Count;
         for (int i = 0; i < _layout.Fields.Count; i++)
         {
-            _fieldTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            // AutoSize rows grow with the (DPI-scaled) font; a fixed pixel height
+            // clipped the labels on high-DPI displays.
+            _fieldTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         }
 
         int row = 0;
         foreach (var f in _layout.Fields)
         {
+            // Anchor=Left (no Top/Bottom) centers the label vertically in the row so
+            // it lines up with the numeric without a fixed top-margin hack.
             var lbl = new Label
             {
                 Text = f.Label, AutoSize = true, Anchor = AnchorStyles.Left,
-                Margin = new Padding(0, 9, 0, 0), ForeColor = Theme.Ink,
+                Margin = new Padding(0, 4, 12, 4), ForeColor = Theme.Ink,
                 BackColor = Color.Transparent, Font = Theme.Body(11f),
             };
             var num = new NumericUpDown
@@ -230,6 +286,7 @@ public sealed partial class MainForm : Form
                 Width = 130,
                 ThousandsSeparator = f.Max > 9999,
                 Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 4, 0, 4),
                 Tag = f.Key,
                 Font = Theme.Body(11f),
             };
