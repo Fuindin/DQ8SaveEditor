@@ -145,6 +145,11 @@ public sealed partial class MainForm : Form
 
         _fieldTable.BackColor = Theme.Parchment;
         _equipTable.BackColor = Theme.Parchment;
+
+        // Character portrait: a gold-edged frame over a parchment mat.
+        _portraitFrame.BackColor = Theme.GoldDeep;
+        _portrait.BackColor = Theme.ParchmentHi;
+        _portraitFrame.Visible = false;   // shown once a character is selected
         _lblCarried.ForeColor = Theme.InkMuted;
         _lblCarried.BackColor = Color.Transparent;
         _lblCarried.Font = Theme.Body(9.5f, FontStyle.Italic);
@@ -429,6 +434,9 @@ public sealed partial class MainForm : Form
 
         _loading = true;
         _txtName.Text = c.DisplayName;
+
+        _portrait.Image = Dq8Portraits.ForSlot(c.Slot);
+        _portraitFrame.Visible = _portrait.Image is not null;
         foreach (var (key, num) in _fieldEditors)
         {
             if (c.TryGet(key, out long v))

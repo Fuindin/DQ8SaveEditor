@@ -50,6 +50,8 @@ partial class MainForm
         _tabs = new TabControl();
         _pageAttr = new TabPage();
         _fieldTable = new TableLayoutPanel();
+        _portraitFrame = new Panel();
+        _portrait = new PictureBox();
         _pageItems = new TabPage();
         _carriedList = new ListBox();
         _lblCarried = new Label();
@@ -67,6 +69,8 @@ partial class MainForm
         _pageAttr.SuspendLayout();
         _pageItems.SuspendLayout();
         _pageBag.SuspendLayout();
+        _portraitFrame.SuspendLayout();
+        ((ISupportInitialize)_portrait).BeginInit();
         SuspendLayout();
         // 
         // _menu
@@ -291,6 +295,7 @@ partial class MainForm
         // _pageAttr
         // 
         _pageAttr.AutoScroll = true;
+        _pageAttr.Controls.Add(_portraitFrame);
         _pageAttr.Controls.Add(_fieldTable);
         _pageAttr.Location = new Point(4, 32);
         _pageAttr.Name = "_pageAttr";
@@ -298,6 +303,24 @@ partial class MainForm
         _pageAttr.Size = new Size(1029, 776);
         _pageAttr.TabIndex = 0;
         _pageAttr.Text = "Attributes";
+        //
+        // _portraitFrame  (framed character portrait, top-right of the Attributes page)
+        //
+        _portraitFrame.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        _portraitFrame.Controls.Add(_portrait);
+        _portraitFrame.Location = new Point(835, 16);
+        _portraitFrame.Name = "_portraitFrame";
+        _portraitFrame.Padding = new Padding(4);
+        _portraitFrame.Size = new Size(176, 182);
+        _portraitFrame.TabIndex = 1;
+        //
+        // _portrait
+        //
+        _portrait.Dock = DockStyle.Fill;
+        _portrait.Name = "_portrait";
+        _portrait.SizeMode = PictureBoxSizeMode.Zoom;
+        _portrait.TabIndex = 0;
+        _portrait.TabStop = false;
         // 
         // _fieldTable
         // 
@@ -424,6 +447,8 @@ partial class MainForm
         _pageItems.ResumeLayout(false);
         _pageItems.PerformLayout();
         _pageBag.ResumeLayout(false);
+        _portraitFrame.ResumeLayout(false);
+        ((ISupportInitialize)_portrait).EndInit();
         ResumeLayout(false);
         PerformLayout();
     }
@@ -457,6 +482,8 @@ partial class MainForm
     private TabControl _tabs;
     private TabPage _pageAttr;
     private TableLayoutPanel _fieldTable;
+    private Panel _portraitFrame;
+    private PictureBox _portrait;
     private TabPage _pageItems;
     private TableLayoutPanel _equipTable;
     private Label _lblCarried;
