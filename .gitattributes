@@ -1,0 +1,6 @@
+# Normalize text files: LF in the repository, CRLF in the working tree.
+* text=auto eol=crlf
+
+# Never touch binaries.
+*.png binary
+*.zip binary
