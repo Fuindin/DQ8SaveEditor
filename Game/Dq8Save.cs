@@ -25,11 +25,15 @@ public sealed class Dq8Save
         get
         {
             if (_layout.PartyCountOverride > 0)
+            {
                 return AllMembers.Take(_layout.PartyCountOverride).Where(m => m.IsPresent).ToList();
+            }
 
             int mask = PartyMask;
             if (mask == 0)   // fall back to contiguous-present detection if no mask
+            {
                 return AllMembers.Where(m => m.IsPresent).ToList();
+            }
 
             return AllMembers.Where(m => (mask & (1 << m.Slot)) != 0 && m.IsPresent).ToList();
         }
@@ -40,7 +44,11 @@ public sealed class Dq8Save
     {
         get
         {
-            if (_validBases.Count == 0) return 0;
+            if (_validBases.Count == 0)
+            {
+                return 0;
+            }
+
             int at = _validBases[0] + _layout.PartyBitmaskOffset;
             return at + 2 <= _ee.Length ? BinaryPrimitives.ReadUInt16LittleEndian(_ee.AsSpan(at)) : 0;
         }

@@ -58,7 +58,11 @@ public sealed class P2SArchive
     public byte[] GetData(string name)
     {
         var e = this[name];
-        if (e.NewData is not null) return e.NewData;
+        if (e.NewData is not null)
+        {
+            return e.NewData;
+        }
+
         return e.Method switch
         {
             MethodStore => e.RawCompressed,

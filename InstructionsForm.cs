@@ -6,6 +6,7 @@ public sealed partial class InstructionsForm : Form
     {
         InitializeComponent();
         ApplyTheme();
+        ApplyAdaptiveLayout();
         BuildContent();
 
         AcceptButton = _btnClose;
@@ -34,6 +35,24 @@ public sealed partial class InstructionsForm : Form
         _btnClose.FlatAppearance.BorderColor = Theme.GoldDeep;
         _btnClose.FlatAppearance.BorderSize = 2;
         _btnClose.Cursor = Cursors.Hand;
+    }
+
+    /// <summary>
+    /// Same story as MainForm: the designer's pixel heights were measured with the
+    /// default UI font, so the bold Palatino title and the Close button both ran past
+    /// the bottom of the boxes holding them. Size them from the fonts instead.
+    /// </summary>
+    private void ApplyAdaptiveLayout()
+    {
+        _lblTitle.Height = _lblTitle.GetPreferredSize(Size.Empty).Height;
+
+        _btnClose.AutoSize = true;
+        _btnClose.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        _btnClose.Padding = new Padding(14, 6, 14, 6);
+        _bottomPanel.Height = _btnClose.PreferredSize.Height + _bottomPanel.Padding.Vertical;
+        _btnClose.Location = new Point(
+            _bottomPanel.ClientSize.Width - _bottomPanel.Padding.Right - _btnClose.PreferredSize.Width,
+            _bottomPanel.Padding.Top);
     }
 
     private void BuildContent()

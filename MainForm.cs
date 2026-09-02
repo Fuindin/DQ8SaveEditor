@@ -24,6 +24,7 @@ public sealed partial class MainForm : Form
     {
         InitializeComponent();   // visual layout (MainForm.Designer.cs)
         ApplyTheme();            // colours, fonts, owner-draw renderer
+        ApplyAdaptiveLayout();   // re-size the fixed-pixel bits to the themed fonts
         WireEvents();
         BuildFieldEditors();     // generate the stat rows from the offset config
         UpdateState();
@@ -35,6 +36,7 @@ public sealed partial class MainForm : Form
         base.OnShown(e);
         UpdateCharListItemHeight();
         UpdateTabSize();
+        ApplyAdaptiveLayout();
         if (_pendingOpen is not null)
         {
             string path = _pendingOpen;
@@ -48,6 +50,98 @@ public sealed partial class MainForm : Form
         base.OnDpiChanged(e);
         UpdateCharListItemHeight();
         UpdateTabSize();
+        ApplyAdaptiveLayout();
+    }
+
+    /// <summary>
+    /// Re-states the designer's fixed-pixel sizing in terms of the fonts actually in
+    /// use. The designer values were captured with the default UI font; the themed
+    /// Palatino faces (9.5–13pt) are taller and wider, so every hard-coded height was
+    /// a few pixels short of its own text and clipped it. Driving the sizes from
+    /// <see cref="Control.GetPreferredSize"/> keeps them right at any DPI, so this is
+    /// re-run after the handle exists and again whenever the DPI changes.
+    /// </summary>
+    private void ApplyAdaptiveLayout()
+    {
+        // Header rows: grow with their text instead of the designer's pixel heights.
+        // AutoSize rows measure a child's *preferred* size only if the child itself
+        // auto-sizes — otherwise the too-short designer height wins and clips.
+        _header.AutoSize = true;
+        _header.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        foreach (RowStyle rs in _header.RowStyles)
+        {
+            rs.SizeType = SizeType.AutoSize;
+        }
+
+        // The header labels stay AutoSize=false so AutoEllipsis still trims an
+        // over-long path; only their heights are re-derived from the font.
+        _lblSerial.AutoEllipsis = true;
+        FitHeaderLabels();
+
+        // Gold bar: "Save As (new copy)…" in bold Palatino is wider and taller than
+        // the designer's 170x34, which cropped the caption to "Save As (new".
+        _btnSave.AutoSize = true;
+        _btnSave.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        _btnSave.Padding = new Padding(14, 6, 14, 6);
+        _numGold.Width = MeasureWidth(_numGold.Maximum.ToString("N0"), _numGold.Font) + 46;
+        _goldPanel.AutoSize = true;
+        _goldPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+        // Docked section labels keep their designer height, so grow them to fit.
+        FitDockedLabel(_lblCharacters);
+        FitDockedLabel(_lblCarried);
+
+        // Stat and equipment tables: fixed-width columns wrapped the longer captions
+        // ("MP (current)") onto a second line. Size the columns to their content.
+        _fieldTable.ColumnStyles[0] = new ColumnStyle(SizeType.AutoSize);
+        _equipTable.ColumnStyles[0] = new ColumnStyle(SizeType.AutoSize);
+        _equipTable.ColumnStyles[1] = new ColumnStyle(SizeType.AutoSize);
+    }
+
+    /// <summary>Grows a Dock=Top label to the height its own font needs.</summary>
+    private static void FitDockedLabel(Label lbl)
+        => lbl.Height = Math.Max(lbl.Height, lbl.GetPreferredSize(Size.Empty).Height);
+
+    private static int MeasureWidth(string text, Font font)
+        => TextRenderer.MeasureText(text, font).Width;
+
+    /// <summary>
+    /// Heights for the three header lines. The banner wraps, so it is measured against
+    /// the width actually available and re-measured whenever the form is resized.
+    /// </summary>
+    private void FitHeaderLabels()
+    {
+        int avail = Math.Max(80, _header.ClientSize.Width - _header.Padding.Horizontal);
+        _lblFile.Height = _lblFile.GetPreferredSize(Size.Empty).Height;
+        _lblSerial.Height = _lblSerial.GetPreferredSize(Size.Empty).Height;
+        _lblBanner.Height = _lblBanner.GetPreferredSize(new Size(avail - _lblBanner.Margin.Horizontal, 0)).Height;
+    }
+
+    /// <summary>
+    /// The portrait is anchored to the top-right of the Attributes page, so on a narrow
+    /// window it would sit on top of the stat fields. Drop it when the page is too
+    /// narrow to hold both — the numbers matter, the picture is decoration.
+    /// </summary>
+    private void LayoutPortrait()
+    {
+        if (_portrait.Image is null)
+        {
+            _portraitFrame.Visible = false;
+            return;
+        }
+
+        int fields = _fieldTable.GetColumnWidths().Sum() + _fieldTable.Padding.Horizontal + _fieldTable.Left;
+        _portraitFrame.Visible = _pageAttr.ClientSize.Width - fields >= _portraitFrame.Width + 24;
+    }
+
+    protected override void OnResize(EventArgs e)
+    {
+        base.OnResize(e);
+        if (IsHandleCreated)
+        {
+            FitHeaderLabels();
+            LayoutPortrait();
+        }
     }
 
     /// <summary>
@@ -102,15 +196,6 @@ public sealed partial class MainForm : Form
         _lblFile.BackColor = Color.Transparent;
         _lblSerial.ForeColor = Theme.InkMuted;
         _lblSerial.BackColor = Color.Transparent;
-
-        // Let the header size to its (DPI-scaled) text instead of fixed-pixel rows,
-        // which clipped the banner line at >100% scaling.
-        _header.AutoSize = true;
-        _header.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-        foreach (RowStyle rs in _header.RowStyles)
-        {
-            rs.SizeType = SizeType.AutoSize;
-        }
 
         _goldPanel.BackColor = Theme.Parchment;
         _lblGold.ForeColor = Theme.Ink;
@@ -436,7 +521,7 @@ public sealed partial class MainForm : Form
         _txtName.Text = c.DisplayName;
 
         _portrait.Image = Dq8Portraits.ForSlot(c.Slot);
-        _portraitFrame.Visible = _portrait.Image is not null;
+        LayoutPortrait();
         foreach (var (key, num) in _fieldEditors)
         {
             if (c.TryGet(key, out long v))
@@ -599,6 +684,8 @@ public sealed partial class MainForm : Form
         {
             _lblBanner.Visible = false;
         }
+
+        FitHeaderLabels();   // the banner wraps, so re-measure now its text is set
         UpdateTitle();
     }
 
