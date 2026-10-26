@@ -162,7 +162,7 @@ public sealed class Dq8Save
 
         // Validate using slot-0's stat block (max HP + level), which are stable fields.
         int levelAt = headerBase + layout.StatBlockOffset + 0x10;   // level (0-indexed)
-        int maxHpAt = headerBase + layout.StatBlockOffset + 0x04;   // max HP
+        int maxHpAt = headerBase + layout.StatBlockOffset + 0x00;   // max HP
         if (levelAt + 4 > ee.Length || maxHpAt + 4 > ee.Length)
         {
             return false;

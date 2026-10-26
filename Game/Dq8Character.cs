@@ -129,7 +129,7 @@ public sealed class Dq8Character
                 return false;
             }
 
-            long maxHp = ReadU32(b + 0x04);
+            long maxHp = ReadU32(b + 0x00);
             long level0 = ReadU32(b + 0x10);
 
             return maxHp is > 0 and < 100000 && level0 < 100;
